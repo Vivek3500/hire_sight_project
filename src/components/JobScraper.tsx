@@ -126,10 +126,19 @@ export const JobScraper = () => {
   const handleDatasetSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!careerField || allJobs.length === 0) {
+    if (!careerField) {
       toast({
         title: "Error",
         description: "Please enter a career field",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (allJobs.length === 0) {
+      toast({
+        title: "Dataset not loaded",
+        description: "Please wait for the dataset to load",
         variant: "destructive",
       });
       return;
