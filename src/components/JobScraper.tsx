@@ -2,61 +2,107 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, Briefcase, Wrench, Users, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface Job {
-  title?: string;
-  company?: string;
-  location?: string;
-  salary?: string;
-  experience?: string;
-  skills?: string[];
-  description?: string;
-  rawData?: string;
+interface JobRole {
+  title: string;
+  count: number;
+}
+
+interface Skill {
+  skill: string;
+  importance: 'High' | 'Medium' | 'Low';
+}
+
+interface SalaryRanges {
+  min: number;
+  avg: number;
+  max: number;
+  currency: string;
+}
+
+interface GrowthOutlook {
+  trend: 'Growing' | 'Stable' | 'Declining';
+  description: string;
+}
+
+interface CareerInsights {
+  growthOutlook: GrowthOutlook;
+  salaryRanges: SalaryRanges;
+  jobRoles: JobRole[];
+  technicalSkills: Skill[];
+  softSkills: Skill[];
+  topLocations: string[];
+  marketDemand: string;
 }
 
 export const JobScraper = () => {
-  const [url, setUrl] = useState('');
+  const [careerField, setCareerField] = useState('');
+  const [location, setLocation] = useState('India');
   const [isLoading, setIsLoading] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [insights, setInsights] = useState<CareerInsights | null>(null);
   const { toast } = useToast();
 
-  const handleScrape = async (e: React.FormEvent) => {
+  const formatINR = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getImportanceBadgeColor = (importance: string) => {
+    switch (importance) {
+      case 'High':
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'Medium':
+        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+      case 'Low':
+        return 'bg-green-500/10 text-green-500 border-green-500/20';
+      default:
+        return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
+
+  const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!url) {
+    if (!careerField) {
       toast({
         title: "Error",
-        description: "Please enter a URL",
+        description: "Please enter a career field",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    setJobs([]);
+    setInsights(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('scrape-jobs', {
-        body: { url }
+      console.log('Analyzing career field:', careerField);
+      
+      const { data, error } = await supabase.functions.invoke('analyze-career', {
+        body: { careerField, location }
       });
 
       if (error) throw error;
 
-      if (data?.jobs) {
-        setJobs(data.jobs);
+      if (data?.insights) {
+        setInsights(data.insights);
         toast({
           title: "Success",
-          description: `Extracted ${data.jobs.length} job listings`,
+          description: "Career insights generated successfully",
         });
       }
     } catch (error) {
-      console.error('Scraping error:', error);
+      console.error('Analysis error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to scrape jobs",
+        description: error instanceof Error ? error.message : "Failed to analyze career field",
         variant: "destructive",
       });
     } finally {
@@ -64,48 +110,67 @@ export const JobScraper = () => {
     }
   };
 
-  const predefinedUrls = [
-    { name: 'Naukri.com', url: 'https://www.naukri.com/' },
-    { name: 'Indeed India', url: 'https://in.indeed.com/' },
+  const predefinedFields = [
+    'Data Analyst',
+    'Software Developer',
+    'Digital Marketing',
+    'UI/UX Designer',
+    'Product Manager',
   ];
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Job Data Scraper</CardTitle>
+          <CardTitle>Career Insights Analyzer</CardTitle>
           <CardDescription>
-            Extract job listings from career websites using AI
+            Get AI-powered job market insights using ML and real-time data
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleScrape} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="url" className="text-sm font-medium">
-                Website URL
-              </label>
-              <Input
-                id="url"
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.naukri.com/"
-                disabled={isLoading}
-              />
+          <form onSubmit={handleAnalyze} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="careerField" className="text-sm font-medium">
+                  Career Field
+                </label>
+                <Input
+                  id="careerField"
+                  type="text"
+                  value={careerField}
+                  onChange={(e) => setCareerField(e.target.value)}
+                  placeholder="e.g., Data Analyst, Doctor, Teacher"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="location" className="text-sm font-medium">
+                  Location
+                </label>
+                <Input
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="India"
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground w-full">Quick links:</span>
-              {predefinedUrls.map((site) => (
+              <span className="text-sm text-muted-foreground w-full">Popular fields:</span>
+              {predefinedFields.map((field) => (
                 <Button
-                  key={site.name}
+                  key={field}
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setUrl(site.url)}
+                  onClick={() => setCareerField(field)}
                   disabled={isLoading}
                 >
-                  {site.name}
+                  {field}
                 </Button>
               ))}
             </div>
@@ -114,75 +179,152 @@ export const JobScraper = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Extracting Jobs...
+                  Analyzing with ML...
                 </>
               ) : (
-                'Extract Jobs'
+                '🤖 Generate Insights'
               )}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {jobs.length > 0 && (
+      {insights && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">
-            Extracted Jobs ({jobs.length})
-          </h3>
-          {jobs.map((job, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  {job.title || 'Job Listing'}
-                </CardTitle>
-                {job.company && (
-                  <CardDescription>{job.company}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {job.location && (
-                  <p className="text-sm">
-                    <span className="font-medium">Location:</span> {job.location}
-                  </p>
-                )}
-                {job.salary && (
-                  <p className="text-sm">
-                    <span className="font-medium">Salary:</span> {job.salary}
-                  </p>
-                )}
-                {job.experience && (
-                  <p className="text-sm">
-                    <span className="font-medium">Experience:</span> {job.experience}
-                  </p>
-                )}
-                {job.skills && job.skills.length > 0 && (
-                  <div className="text-sm">
-                    <span className="font-medium">Skills:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {job.skills.map((skill, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Career Insights: {careerField}</h3>
+            <Button onClick={() => handleAnalyze({ preventDefault: () => {} } as React.FormEvent)} variant="outline" size="sm">
+              Refresh
+            </Button>
+          </div>
+
+          {/* Growth Outlook */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Growth Outlook
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Badge variant="secondary" className="text-base">
+                {insights.growthOutlook.trend}
+              </Badge>
+              <p className="text-sm text-muted-foreground">{insights.growthOutlook.description}</p>
+              <p className="text-sm mt-4">{insights.marketDemand}</p>
+            </CardContent>
+          </Card>
+
+          {/* Salary Ranges */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Salary Ranges (Annual)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Minimum</p>
+                  <p className="text-lg font-semibold">{formatINR(insights.salaryRanges.min)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Average</p>
+                  <p className="text-lg font-semibold text-primary">{formatINR(insights.salaryRanges.avg)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Maximum</p>
+                  <p className="text-lg font-semibold">{formatINR(insights.salaryRanges.max)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Job Roles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                Common Job Roles
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {insights.jobRoles.map((role, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                    <span className="font-medium">{role.title}</span>
+                    <Badge variant="outline">{role.count}+ openings</Badge>
                   </div>
-                )}
-                {job.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {job.description}
-                  </p>
-                )}
-                {job.rawData && (
-                  <div className="text-xs text-muted-foreground bg-muted p-2 rounded max-h-32 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap">{job.rawData}</pre>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Technical Skills */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-primary" />
+                Technical Skills Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {insights.technicalSkills.map((skill, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className={getImportanceBadgeColor(skill.importance)}
+                  >
+                    {skill.skill} • {skill.importance}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Soft Skills */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Soft Skills Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {insights.softSkills.map((skill, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className={getImportanceBadgeColor(skill.importance)}
+                  >
+                    {skill.skill} • {skill.importance}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Locations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                Top Hiring Locations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {insights.topLocations.map((location, index) => (
+                  <Badge key={index} variant="secondary" className="text-base">
+                    {location}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

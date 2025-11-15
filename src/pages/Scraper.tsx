@@ -7,9 +7,9 @@ const Scraper = () => {
       <Navigation />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Job Scraper</h1>
+          <h1 className="text-3xl font-bold mb-2">🤖 Career Insights Analyzer</h1>
           <p className="text-muted-foreground">
-            Use AI to extract job listings from popular career websites
+            ML-powered job market analysis using Google Gemini AI with real-time data
           </p>
         </div>
         <JobScraper />
