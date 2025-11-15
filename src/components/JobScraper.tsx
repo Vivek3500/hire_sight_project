@@ -124,7 +124,7 @@ export const JobScraper = () => {
         <CardHeader>
           <CardTitle>Career Insights Analyzer</CardTitle>
           <CardDescription>
-            Get AI-powered job market insights using ML and real-time data
+            Get job market insights using ML and real-time data
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -182,7 +182,7 @@ export const JobScraper = () => {
                   Analyzing with ML...
                 </>
               ) : (
-                '🤖 Generate Insights'
+                ' Generate Insights'
               )}
             </Button>
           </form>
