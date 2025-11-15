@@ -15,21 +15,33 @@ export const parseJobDataset = async (): Promise<JobData[]> => {
     const text = await response.text();
     
     const lines = text.trim().split('\n');
-    const headers = lines[0].split(',');
+    const jobs: JobData[] = [];
     
-    return lines.slice(1).map(line => {
-      const values = parseCSVLine(line);
-      return {
-        companyName: values[0],
-        companyType: values[1],
-        jobTitle: values[2],
-        numberOfOpenings: parseInt(values[3]) || 0,
-        requiredSkills: values[4].split(',').map(s => s.trim()),
-        salaryRange: values[5],
-        minExperience: parseInt(values[6]) || 0,
-        maxExperience: parseInt(values[7]) || 0,
-      };
-    });
+    // Skip header row
+    for (let i = 1; i < lines.length; i++) {
+      try {
+        const values = parseCSVLine(lines[i]);
+        
+        // Validate we have all required fields
+        if (values.length >= 8) {
+          jobs.push({
+            companyName: values[0],
+            companyType: values[1],
+            jobTitle: values[2],
+            numberOfOpenings: parseInt(values[3]) || 0,
+            requiredSkills: values[4] ? values[4].split(',').map(s => s.trim()) : [],
+            salaryRange: values[5],
+            minExperience: parseInt(values[6]) || 0,
+            maxExperience: parseInt(values[7]) || 0,
+          });
+        }
+      } catch (rowError) {
+        console.warn('Skipping malformed row:', i, rowError);
+      }
+    }
+    
+    console.log(`Successfully parsed ${jobs.length} jobs from dataset`);
+    return jobs;
   } catch (error) {
     console.error('Error parsing job dataset:', error);
     return [];
@@ -44,9 +56,16 @@ const parseCSVLine = (line: string): string[] => {
   
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
+    const nextChar = line[i + 1];
     
     if (char === '"') {
-      inQuotes = !inQuotes;
+      // Handle escaped quotes ("")
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       result.push(current.trim());
       current = '';
@@ -56,7 +75,7 @@ const parseCSVLine = (line: string): string[] => {
   }
   
   result.push(current.trim());
-  return result;
+  return result.filter(v => v !== ''); // Remove empty values
 };
 
 export const getJobsByField = (jobs: JobData[], fieldName: string): JobData[] => {
